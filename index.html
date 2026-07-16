@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12141A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dɔŋɔj Calc">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<title>Essaie de chiffres — Calculatrice RTL</title>
+<style>
+  :root{
+    --ink: #12141A;
+    --panel: #1B1E27;
+    --panel-2: #21252F;
+    --border: #2E323D;
+    --brass: #C89B4C;
+    --brass-dim: #8C6F38;
+    --teal: #4E8C82;
+    --text: #EDE8DC;
+    --text-muted: #8B8FA3;
+    --danger: #B25646;
+    --font-utility: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --font-display: Georgia, 'Iowan Old Style', serif;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(200,155,74,0.08), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--font-utility);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wrap{ max-width: 480px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  header{ text-align:center; margin-bottom: 18px; }
+  header .eyebrow{
+    font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--teal); margin-bottom: 6px;
+  }
+  header h1{ font-family: var(--font-display); font-weight: 400; font-size: 26px; margin: 0; color: var(--brass); }
+  header p{ color: var(--text-muted); font-size: 13px; margin: 6px 0 0; line-height:1.5; }
+
+  .card{ background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+
+  /* --- Display --- */
+  .display{ background: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 18px 16px 14px; margin-bottom: 14px; }
+  .seq{
+    display:flex; flex-direction: row-reverse; align-items:center; flex-wrap: nowrap;
+    overflow-x:auto; gap: 4px;
+  }
+  .expr-line.seq{ min-height: 20px; }
+  .expr-line .u{ font-size: 14px; color: var(--text-muted); }
+  .expr-line img{ height: 16px; width:auto; opacity:.75; }
+  .main-line.seq{ min-height: 48px; margin-top: 4px; }
+  .main-line .u{ font-size: 40px; line-height:1; color: var(--text); }
+  .main-line img{ height: 42px; width:auto; }
+  .u.sep{ color: var(--brass-dim); font-size: 0.5em; align-self: center; margin: 0 1px; }
+  .rtl-tag{
+    display:inline-block; margin-top:8px; font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--brass-dim);
+    border: 1px solid var(--brass-dim); border-radius: 20px; padding: 2px 8px;
+  }
+
+  /* --- Keypad --- */
+  .keypad{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  button.key{
+    font-family: var(--font-utility);
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 12px 0; font-size: 15px; cursor:pointer; user-select:none;
+  }
+  button.key:active{ background: #2B303C; }
+  button.key.digit{ display:flex; align-items:center; justify-content:center; min-height: 54px; }
+  button.key.digit img{ height: 30px; width:auto; }
+  button.key.digit .fallback{ font-size: 20px; }
+  button.key.op{ color: var(--brass); font-size: 20px; }
+  button.key.equals{ background: var(--brass); color: var(--ink); font-weight:bold; border-color: var(--brass); }
+  button.key.equals:active{ background: var(--brass-dim); }
+  button.key.clear{ color: var(--danger); }
+
+  footer{ text-align:center; font-size: 11px; color: var(--text-muted); margin-top: 24px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Songhay - Dogon · (Dɔŋɔj) - MAIGUS</div>
+    <h1>Calculatrice</h1>
+    <p>Affichage et saisie en droite-à-gauche.<br>10 glyphes sont déjà intégrés — Bon essai, MAIGUS.</p>
+  </header>
+
+  <div class="card">
+    <div class="display">
+      <div class="expr-line seq" id="exprLine"></div>
+      <div class="main-line seq" id="mainLine"></div>
+      <span class="rtl-tag">RTL actif</span>
+    </div>
+    <div class="keypad" id="keypad"></div>
+  </div>
+
+  <footer>
+    Fichier autonome — aucune installation.<br>
+    Ouvrez-le avec un navigateur sur Android.
+  </footer>
+</div>
+
+<script>
+(function(){
+  const DEFAULT_IMAGES = [
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYcAAAMNAQMAAABJZCqqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURf///wAAAFXC034AAAACdFJOU/8A5bcwSgAAAAlwSFlzAAAywAAAMsABKGRa2wAAAJxJREFUeNrt2aERACAQA8F3lEH/XVEGCtC8YRCg9mxmK0hEqs69HqcIgiAIgiAIgiAIgiAIgiAIgiAIgiAIgiAIgiAIgiAIgiAIgiAI4oeQJEmSJEmSJEnSi9JtM1vaS9oHQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRD3YgGUICjl+JuYpAAAAABJRU5ErkJggg==",
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYcAAAMNAQMAAABJZCqqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURQAAAP///6XZn90AAAABdFJOUwBA5thmAAAACXBIWXMAADLAAAAywAEoZFrbAAAAmElEQVR42u3LoQ0AIBAEsNuM/TdC8Wgw5CVJ65tcRp1mXgzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMIxfRzUtwzAMwzAMwzAMwzAMwzAMwzAMoz829rgC2WG2DDsAAAAASUVORK5CYII=",
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYcAAAMXAQMAAADrKQtXAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURQAAAP///6XZn90AAAABdFJOUwBA5thmAAAACXBIWXMAADLAAAAywAEoZFrbAAAAoUlEQVR42u3ZMQ0AIAwAwTrAvxuUUWampguE5H4/BR9RNPJsVYAgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCOKyyGYEQRAEQRAEQRAEQRAEQRAEQRDEGzHb54cgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgCIIgPhUbiXp+wHic7aQAAAAASUVORK5CYII=",
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYcAAAMNAQMAAABJZCqqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURf///wAAAFXC034AAAACdFJOU/8A5bcwSgAAAAlwSFlzAAAywAAAMsABKGRa2wAAAIhJREFUeNrt2TERACAMBMF3hn83KAhIyNAwKfb6VXCJJEmSJEmSJEmSPnSaNkEQBEEQBEEQBEEQBEEQBEEQBBFJkiRJkiRJkiRNaDVfpwiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCeBcX0Ph7Bs/KhPcAAAAASUVORK5CYII=",
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYcAAAMXAQMAAADrKQtXAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURf///wAAAFXC034AAAACdFJOU/8A5bcwSgAAAAlwSFlzAAAywAAAMsABKGRa2wAAAIxJREFUeNrty7ENACAIADA+4/9vvECcZWJxMGn3RgAAAAAAAPCFrNsyDMMwDMMwDMMwDMMwDMMwDMMwDMMwDMMwDMMwDMMwDMMwDMMwDOPh6LZhGIZhGIZhGIZhGIZhGIZhGIZhGIZhGIZhGIZhGIZhGIZhGIZhGIZhGIZhGIZhGIZhGIZhGIZhGMZ8HC/+IyvCion6AAAAAElFTkSuQmCC",
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYcAAAMMAQMAAACCOPkPAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURf///wAAAFXC034AAAACdFJOU/8A5bcwSgAAAAlwSFlzAAAywAAAMsABKGRa2wAAAI1JREFUeNrt2bERABAQAMHvQEn670YFyD9gjEBgL98KLkKSJEmSJEmSJEnX1bGuEwRBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBEETsKsdCkiRJkiRJkiTpv/KVaQRBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBEATxQkyGjQHYIvy9kgAAAABJRU5ErkJggg==",
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYcAAAMNAQMAAABJZCqqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURf///wAAAFXC034AAAACdFJOU/8A5bcwSgAAAAlwSFlzAAAywAAAMsABKGRa2wAAAItJREFUeNrt2aENACAMAMFuwv4boigeURSQkHt/E3zEUsu6EQRBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBEARBvBCSJEmSJEmSJEk60WbbZCcIgiAIgiAIgiAIgiAIgiAIgvheSJIkSZIkSZIk6UITLFBNnDQyiA8AAAAASUVORK5CYII=",
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYcAAAMNAQMAAABJZCqqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURf///wAAAFXC034AAAACdFJOU/8A5bcwSgAAAAlwSFlzAAAywAAAMsABKGRa2wAAAJtJREFUeNrt3bENgDAQBMHvgJJonZJcAXbMJQ6QkJFn09NU8MFXRWd/1moWQRAEQRAEQRAEQRAEQRAEQRAE8YWQJEmSJEmSJEnarzip9Cv2I/abIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIEqSJEmSJEmSJEnvW/ODC0EQBEEQBEEQBEEQBEEQBEEQxM/FACqQo8rZkk82AAAAAElFTkSuQmCC",
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYcAAAMMAQMAAACCOPkPAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURf///wAAAFXC034AAAACdFJOU/8A5bcwSgAAAAlwSFlzAAAywAAAMsABKGRa2wAAAIdJREFUeNrt2TENADAMBLEwK382ZdBCeEXJ6NuN4KokSZIkSZIkSZLU7oUuQRAEQRAEQRAEQRAEQRAEQRAEsSAkSZIkSZIkSZI077SvDEEQBEEQBEEQBEEQBEEQBEEQBEEQBEEQBEEQBEEQBEEQBEEQBEEQBEEQBEEQBEEQBEEQBEEQBEEQUXx05k14siLNFAAAAABJRU5ErkJggg==",
+    "data:image/png;base64,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",
+  ];
+
+  let digitImages = DEFAULT_IMAGES;
+  let entry = '0';
+  let previous = null;
+  let operator = null;
+  let justEvaluated = false;
+  let exprText = '';
+
+  // --- render helpers: build a right-to-left sequence of chars/images ---
+  function buildSeq(container, str, unitClass, imgHeightClass){
+    container.innerHTML = '';
+    for(const ch of str){
+      if(ch >= '0' && ch <= '9'){
+        const idx = parseInt(ch,10);
+        if(digitImages[idx]){
+          const img = document.createElement('img');
+          img.src = digitImages[idx];
+          container.appendChild(img);
+          continue;
+        }
+      }
+      const span = document.createElement('span');
+      if(ch === THOUSANDS_SEP){
+        span.className = unitClass + ' sep';
+        span.textContent = '\u00B7'; // point médian — repère visuel du groupement de 3
+      } else {
+        span.className = unitClass;
+        span.textContent = (ch === '.') ? ',' : (ch === '-' ? '−' : ch);
+      }
+      container.appendChild(span);
+    }
+  }
+
+  function fmt(num){
+    if(!isFinite(num)) return 'ERR';
+    let s = Math.round(num * 1e10) / 1e10;
+    return String(s);
+  }
+  function calculate(a,b,op){
+    switch(op){
+      case '+': return a+b;
+      case '−': return a-b;
+      case '×': return a*b;
+      case '÷': return b===0 ? NaN : a/b;
+    }
+  }
+
+  const THOUSANDS_SEP = '\u202F'; // espace fine — insérée entre les groupes de 3 chiffres
+  function groupInteger(intPart){
+    let out = '';
+    for(let i=0;i<intPart.length;i++){
+      if(i>0 && (intPart.length-i)%3===0) out += THOUSANDS_SEP;
+      out += intPart[i];
+    }
+    return out;
+  }
+  function formatNumberToken(token){
+    const neg = token.startsWith('-');
+    if(neg) token = token.slice(1);
+    const dot = token.indexOf('.');
+    const intPart = dot===-1 ? token : token.slice(0,dot);
+    const decPart = dot===-1 ? null : token.slice(dot+1);
+    const grouped = groupInteger(intPart) + (decPart!==null ? '.'+decPart : '');
+    return (neg?'-':'') + grouped;
+  }
+  function withThousands(str){
+    return str.replace(/-?\d+(\.\d+)?/g, m => formatNumberToken(m));
+  }
+
+  function render(){
+    buildSeq(document.getElementById('mainLine'), withThousands(entry), 'u');
+    buildSeq(document.getElementById('exprLine'), withThousands(exprText), 'u');
+  }
+
+  function pressDigit(d){
+    if(justEvaluated){ entry='0'; exprText=''; justEvaluated=false; }
+    entry = (entry === '0') ? d : entry + d;
+  }
+  function pressDecimal(){
+    if(justEvaluated){ entry='0'; exprText=''; justEvaluated=false; }
+    if(!entry.includes('.')) entry += '.';
+  }
+  function pressOperator(op){
+    if(operator && !justEvaluated){
+      previous = calculate(previous, parseFloat(entry), operator);
+    } else {
+      previous = parseFloat(entry);
+    }
+    operator = op;
+    exprText = fmt(previous) + op;
+    entry = '0';
+    justEvaluated = false;
+  }
+  function pressEquals(){
+    if(operator === null) return;
+    const b = parseFloat(entry);
+    const result = calculate(previous, b, operator);
+    exprText = fmt(previous) + operator + fmt(b) + '=';
+    entry = isNaN(result) ? 'ERR' : fmt(result);
+    previous = null; operator = null; justEvaluated = true;
+  }
+  function pressClear(){ entry='0'; previous=null; operator=null; exprText=''; justEvaluated=false; }
+  function pressBackspace(){
+    if(justEvaluated){ pressClear(); return; }
+    entry = entry.length > 1 ? entry.slice(0,-1) : '0';
+  }
+
+  // --- build keypad ---
+  const keypad = document.getElementById('keypad');
+  const layout = [
+    ['C','clear'], ['⌫','back'], [',','dec'], ['÷','op'],
+    ['9','d'], ['8','d'], ['7','d'], ['×','op'],
+    ['6','d'], ['5','d'], ['4','d'], ['−','op'],
+    ['3','d'], ['2','d'], ['1','d'], ['+','op'],
+    ['0','d'], ['=','eq']
+  ];
+  layout.forEach(([label,type])=>{
+    const btn = document.createElement('button');
+    btn.className = 'key';
+    if(type==='clear'){ btn.classList.add('clear'); btn.textContent='C'; btn.onclick=()=>{pressClear(); render();}; }
+    else if(type==='back'){ btn.textContent='⌫'; btn.onclick=()=>{pressBackspace(); render();}; }
+    else if(type==='dec'){ btn.classList.add('op'); btn.textContent=','; btn.onclick=()=>{pressDecimal(); render();}; }
+    else if(type==='op'){ btn.classList.add('op'); btn.textContent=label; btn.onclick=()=>{pressOperator(label); render();}; }
+    else if(type==='eq'){ btn.classList.add('equals'); btn.textContent='='; btn.style.gridColumn='span 2'; btn.onclick=()=>{pressEquals(); render();}; }
+    else if(type==='d'){
+      const d = label;
+      btn.classList.add('digit');
+      btn.dataset.d = d;
+      renderDigitButton(btn, d);
+      if(d==='0') btn.style.gridColumn='span 2';
+      btn.onclick=()=>{pressDigit(d); render();};
+    }
+    keypad.appendChild(btn);
+  });
+
+  function renderDigitButton(btn, d){
+    const idx = parseInt(d,10);
+    const img = digitImages[idx];
+    btn.innerHTML = img
+      ? `<img src="${img}">`
+      : `<span class="fallback">${d}</span>`;
+  }
+
+  render();
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
