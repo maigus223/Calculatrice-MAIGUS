@@ -1,4 +1,4 @@
-const CACHE_NAME = 'maigus-calc-v11';
+const CACHE_NAME = 'maigus-calc-v13';
 const CORE_ASSETS = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
