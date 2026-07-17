@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dongoj-calc-v4';
+const CACHE_NAME = 'dongoj-calc-v5';
 const CORE_ASSETS = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
